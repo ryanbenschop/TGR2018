@@ -1,0 +1,104 @@
+package org.firstinspires.ftc.teamcode;
+
+import java.lang.Math;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
+@TeleOp(name="XDrive Control Test", group = "Practice-Bot")
+public class XDriveControlTest extends LinearOpMode {
+    DcMotor backLeft;
+    DcMotor backRight;
+    DcMotor frontLeft;
+    DcMotor frontRight;
+
+    ElapsedTime period = new ElapsedTime();
+
+    private void waitForTick(long periodMs) throws java.lang.InterruptedException {
+        long remaining = periodMs - (long)period.milliseconds();
+        if (remaining > 0) {
+            Thread.sleep(remaining);
+        }
+        period.reset();
+    }
+
+    @Override
+    public  void runOpMode() {
+        double blMotorPower = 0.0;
+        double brMotorPower = 0.0;
+        double flMotorPower = 0.0;
+        double frMotorPower = 0.0;
+
+        double drivePowerScale = 1.0;
+        double inputMagnitude;
+
+        backLeft = hardwareMap.dcMotor.get("back_left");
+        frontLeft = hardwareMap.dcMotor.get("front_left");
+        backRight = hardwareMap.dcMotor.get("back_right");
+        frontRight = hardwareMap.dcMotor.get("front_right");
+
+        backLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        backRight.setDirection(DcMotorSimple.Direction.REVERSE);
+        frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        backLeft.setPower(0);
+        frontLeft.setPower(0);
+        backRight.setPower(0);
+        frontRight.setPower(0);
+
+        waitForStart();
+        try {
+            while (opModeIsActive()) {
+                // SET MOTOR POWER RELATION TO JOYSTICK DIRECTION
+                flMotorPower = -gamepad1.left_stick_y + gamepad1.left_stick_x;
+                frMotorPower = -gamepad1.right_stick_y - gamepad1.right_stick_x;
+                blMotorPower = -gamepad1.left_stick_y - gamepad1.left_stick_x;
+                brMotorPower = -gamepad1.right_stick_y + gamepad1.right_stick_x;
+                telemetry.addData("bb", blMotorPower);
+
+                // SCALE MOTOR POWERS TO JOYSTICK DISPLACEMENT
+                double lsYSq = (gamepad1.left_stick_y * gamepad1.left_stick_y);
+                double lsXSq = (gamepad1.left_stick_x * gamepad1.left_stick_x);
+                double rsYSq = (gamepad1.right_stick_y * gamepad1.right_stick_y);
+                double rsXSq = (gamepad1.right_stick_x * gamepad1.right_stick_x);
+
+                double lsQ = Math.sqrt(lsYSq + lsXSq);
+                double rsQ = Math.sqrt(rsYSq + rsXSq);
+                inputMagnitude = (lsQ + rsQ) / ((Math.sqrt(2)) * 2);
+
+                if (inputMagnitude >= 0.8) {
+                    drivePowerScale = (inputMagnitude * 3.5) - 2.5;
+                } else if (inputMagnitude < 0.8) {
+                    drivePowerScale = inputMagnitude * 0.375;
+                }
+
+                frontLeft.setPower(drivePowerScale * flMotorPower);
+                frontRight.setPower(drivePowerScale * frMotorPower);
+                backLeft.setPower(drivePowerScale * blMotorPower);
+                backRight.setPower(drivePowerScale * brMotorPower);
+
+                waitForTick(40);
+            }
+        }
+        catch (java.lang.InterruptedException exc) {
+            return;
+        }
+        finally {
+            frontLeft.setPower(0);
+            frontRight.setPower(0);
+            backLeft.setPower(0);
+            backRight.setPower(0);
+        }
+    }
+}
